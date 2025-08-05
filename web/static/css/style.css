@@ -1,0 +1,799 @@
+/* Elliott Wave Bot - Enhanced Beautiful Styles */
+
+:root {
+    --primary-color: #0d6efd;
+    --success-color: #00ff88;
+    --warning-color: #ffc107;
+    --danger-color: #ff4444;
+    --dark-color: #212529;
+    --bg-dark: #0a0a0a;
+    --card-bg: linear-gradient(145deg, #1e2a3a 0%, #2d3748 100%);
+    --border-color: #4a5568;
+    --accent-color: #00d4ff;
+    --gold-color: #ffd700;
+}
+
+body {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 25%, #16213e 50%, #0f1419 100%);
+    color: #e2e8f0;
+    font-family: 'Segoe UI', 'Inter', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    position: relative;
+}
+
+/* Animated background effects */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(0, 255, 136, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: -1;
+    animation: backgroundPulse 10s ease-in-out infinite alternate;
+}
+
+@keyframes backgroundPulse {
+    0% { opacity: 0.3; }
+    100% { opacity: 0.7; }
+}
+
+/* Navigation */
+.navbar {
+    background: rgba(10, 10, 10, 0.95) !important;
+    backdrop-filter: blur(15px);
+    border-bottom: 2px solid var(--accent-color);
+    box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.6rem;
+    background: linear-gradient(45deg, var(--accent-color), var(--gold-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Main Content */
+.main-content {
+    margin-top: 80px;
+    padding: 20px;
+}
+
+/* Sidebar */
+.sidebar {
+    padding-right: 30px;
+}
+
+.sidebar .card {
+    background: var(--card-bg);
+    border: 2px solid transparent;
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4), 
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+
+.sidebar .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-color), var(--gold-color), var(--success-color));
+}
+
+.card-header {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(255, 215, 0, 0.2));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+}
+
+.sidebar .card-header {
+    background: rgba(13, 110, 253, 0.1);
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 10px 10px 0 0 !important;
+}
+
+/* Form Controls */
+.form-select, .form-control {
+    background: rgba(45, 55, 72, 0.8);
+    border: 1px solid var(--border-color);
+    color: #e2e8f0;
+}
+
+.form-select:focus, .form-control:focus {
+    background: rgba(45, 55, 72, 0.9);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    color: #e2e8f0;
+}
+
+.form-select option {
+    background: var(--card-bg);
+    color: #e2e8f0;
+}
+
+/* Enhanced Button Styles */
+.btn {
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn:hover::before {
+    left: 100%;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    border: none;
+    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(13, 110, 253, 0.6);
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #0dcaf0, var(--accent-color));
+    border: none;
+    box-shadow: 0 4px 15px rgba(13, 202, 240, 0.4);
+    color: #000;
+}
+
+.btn-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(13, 202, 240, 0.6);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, var(--warning-color), var(--gold-color));
+    border: none;
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+    color: #000;
+}
+
+.btn-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 193, 7, 0.6);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--success-color), #00cc7a);
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 255, 136, 0.6);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6c757d, #5a6268);
+    border: none;
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(108, 117, 125, 0.6);
+}
+
+/* Form Controls */
+.form-select, .form-control {
+    background: rgba(45, 55, 72, 0.8);
+    border: 2px solid var(--border-color);
+    color: #e2e8f0;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.form-select:focus, .form-control:focus {
+    background: rgba(45, 55, 72, 0.9);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 0.2rem rgba(0, 212, 255, 0.25);
+    color: #e2e8f0;
+    transform: scale(1.02);
+}
+
+.form-select option {
+    background: var(--card-bg);
+    color: #e2e8f0;
+}
+
+/* Enhanced Card Styles */
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5);
+}
+
+.card-header {
+    background: rgba(13, 110, 253, 0.1);
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 15px 15px 0 0 !important;
+    font-weight: 600;
+}
+
+/* Welcome Message */
+.welcome-message {
+    margin-top: 50px;
+}
+
+.welcome-message .card {
+    background: linear-gradient(135deg, var(--card-bg) 0%, #4a5568 100%);
+    border: none;
+}
+
+.feature-box {
+    padding: 30px 20px;
+    text-align: center;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    margin: 10px;
+    transition: all 0.3s ease;
+}
+
+.feature-box:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-5px);
+}
+
+/* Enhanced Chart Container */
+#chartContainer {
+    animation: fadeIn 0.8s ease-in-out;
+    background: linear-gradient(145deg, rgba(10, 10, 10, 0.9), rgba(30, 42, 58, 0.9));
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+
+#chartContainer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--success-color), var(--accent-color), var(--gold-color));
+}
+
+#chartContainer .plotly-div {
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(20px) scale(0.95); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+    }
+}
+
+/* Enhanced Support/Resistance Level Display */
+.sr-levels-info {
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(255, 68, 68, 0.1));
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 15px;
+    margin: 15px 0;
+    backdrop-filter: blur(5px);
+}
+
+.sr-level-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sr-level-item:last-child {
+    border-bottom: none;
+}
+
+.sr-support {
+    color: var(--success-color);
+    font-weight: 600;
+}
+
+.sr-resistance {
+    color: var(--danger-color);
+    font-weight: 600;
+}
+
+.sr-psychological {
+    color: var(--gold-color);
+    font-weight: 600;
+}
+
+/* Priority-based S/R styling */
+.sr-support-nearest {
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 212, 255, 0.2));
+    border-left: 4px solid var(--accent-color);
+    padding-left: 10px;
+    border-radius: 5px;
+}
+
+.sr-resistance-nearest {
+    background: linear-gradient(135deg, rgba(255, 68, 68, 0.2), rgba(0, 212, 255, 0.2));
+    border-left: 4px solid var(--accent-color);
+    padding-left: 10px;
+    border-radius: 5px;
+}
+
+.sr-support-strongest {
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(255, 215, 0, 0.2));
+    border-left: 4px solid var(--gold-color);
+    padding-left: 10px;
+    border-radius: 5px;
+}
+
+.sr-resistance-strongest {
+    background: linear-gradient(135deg, rgba(255, 68, 68, 0.2), rgba(255, 215, 0, 0.2));
+    border-left: 4px solid var(--gold-color);
+    padding-left: 10px;
+    border-radius: 5px;
+}
+
+/* S/R Summary styling */
+.sr-summary {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Table Styles */
+.table-dark {
+    --bs-table-bg: var(--card-bg);
+    --bs-table-border-color: var(--border-color);
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > td {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* Loading Spinner */
+.spinner-border {
+    width: 2rem;
+    height: 2rem;
+}
+
+/* Market Summary */
+#marketSummaryCard .card-body {
+    padding: 15px;
+}
+
+.market-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.market-stat:last-child {
+    border-bottom: none;
+}
+
+.market-stat .label {
+    font-weight: 500;
+    color: #a0aec0;
+}
+
+.market-stat .value {
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.positive {
+    color: var(--success-color) !important;
+}
+
+.negative {
+    color: var(--danger-color) !important;
+}
+
+/* Wave Analysis Results */
+#analysisResults {
+    animation: slideUp 0.6s ease-out;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Wave Direction Indicators */
+.wave-up {
+    color: var(--success-color);
+    font-weight: bold;
+}
+
+.wave-down {
+    color: var(--danger-color);
+    font-weight: bold;
+}
+
+/* Confidence Indicators */
+.confidence-high {
+    color: var(--success-color);
+    font-weight: bold;
+}
+
+.confidence-medium {
+    color: var(--warning-color);
+    font-weight: bold;
+}
+
+.confidence-low {
+    color: var(--danger-color);
+    font-weight: bold;
+}
+
+/* Fibonacci Levels */
+.fibonacci-level {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 5px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border-left: 3px solid var(--primary-color);
+}
+
+.fibonacci-level .level {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.fibonacci-level .price {
+    font-family: 'Courier New', monospace;
+    color: #e2e8f0;
+}
+
+/* Footer */
+.footer {
+    background: var(--dark-color);
+    border-top: 1px solid var(--border-color);
+    padding: 30px 0;
+    margin-top: 50px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .sidebar {
+        padding-right: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .main-content {
+        padding: 15px;
+    }
+    
+    .feature-box {
+        margin: 5px;
+        padding: 20px 15px;
+    }
+    
+    #chartDiv {
+        height: 500px !important;
+    }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #6c757d;
+}
+
+/* Utility Classes */
+.text-gradient {
+    background: linear-gradient(45deg, var(--primary-color), var(--warning-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.shadow-lg-custom {
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6) !important;
+}
+
+.border-gradient {
+    border: 2px solid;
+    border-image: linear-gradient(45deg, var(--primary-color), var(--warning-color)) 1;
+}
+
+/* Animation for analyze button */
+#analyzeBtn {
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+#analyzeBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(13, 110, 253, 0.4);
+}
+
+#analyzeBtn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+#analyzeBtn:hover::before {
+    left: 100%;
+}
+
+/* Enhanced Fibonacci Levels Styling */
+.fibonacci-wave {
+    transition: all 0.3s ease;
+}
+
+.fibonacci-wave:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255,255,255,0.1);
+}
+
+.fibonacci-levels-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+}
+
+.fibonacci-level {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.fibonacci-level:hover {
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(255,255,255,0.1);
+}
+
+.fibonacci-level-key {
+    background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,193,7,0.1));
+    border: 1px solid rgba(255,215,0,0.4);
+}
+
+.fibonacci-level-secondary {
+    background: linear-gradient(135deg, rgba(13,202,240,0.2), rgba(13,202,240,0.1));
+    border: 1px solid rgba(13,202,240,0.4);
+}
+
+.fibonacci-level-extension {
+    background: linear-gradient(135deg, rgba(220,53,69,0.2), rgba(220,53,69,0.1));
+    border: 1px solid rgba(220,53,69,0.4);
+}
+
+.fibonacci-level-normal {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.level-label {
+    color: #ffd700;
+    font-size: 0.9rem;
+}
+
+.level-price {
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+/* Future Predictions Styling */
+.prediction-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.prediction-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,215,0,0.1), transparent);
+    transition: left 0.5s;
+}
+
+.prediction-card:hover::before {
+    left: 100%;
+}
+
+.target-card {
+    background: rgba(255,255,255,0.03);
+    transition: all 0.3s ease;
+}
+
+.target-card:hover {
+    background: rgba(255,255,255,0.08);
+    transform: translateY(-1px);
+}
+
+/* TradingView-style Chart Container */
+#chartDiv {
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    background: #1e1e1e;
+    border: 1px solid #2a2a2a;
+}
+
+#chartContainer {
+    background: #1e1e1e;
+    border-radius: 4px;
+    padding: 0;
+    margin: 0;
+}
+
+#chartContainer .card {
+    background: #1e1e1e;
+    border: 1px solid #2a2a2a;
+    border-radius: 4px;
+}
+
+#chartContainer .card-header {
+    background: #1e1e1e;
+    border-bottom: 1px solid #2a2a2a;
+    padding: 12px 16px;
+}
+
+#chartTitle {
+    color: #cccccc;
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0;
+}
+
+/* Loading State Improvements */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #ffd700;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Enhanced Notifications */
+.alert {
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    animation: slideInDown 0.3s ease;
+}
+
+@keyframes slideInDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Enhanced Responsive Improvements */
+@media (max-width: 768px) {
+    .fibonacci-levels-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .target-card {
+        margin-bottom: 10px;
+    }
+    
+    .prediction-card {
+        padding: 20px !important;
+    }
+    
+    #chartDiv {
+        height: 400px !important;
+    }
+}
+
+/* Enhanced Market Summary */
+.market-stat {
+    padding: 8px 12px;
+    margin: 4px 0;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    transition: background 0.2s ease;
+}
+
+.market-stat:hover {
+    background: rgba(255,255,255,0.08);
+}
+
+.market-stat .label {
+    color: #adb5bd;
+    font-size: 0.9rem;
+}
+
+.market-stat .value {
+    color: #ffffff;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+}
+
+/* Animation for cards appearing */
+.card {
+    animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

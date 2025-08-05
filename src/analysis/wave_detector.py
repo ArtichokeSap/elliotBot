@@ -19,16 +19,53 @@ logger = get_logger(__name__)
 
 
 class WaveType(Enum):
-    """Elliott Wave types."""
+    """Elliott Wave types with enhanced labeling support."""
+    # Primary degree waves (main trend)
     IMPULSE_1 = "1"
     IMPULSE_2 = "2"
     IMPULSE_3 = "3"
     IMPULSE_4 = "4"
     IMPULSE_5 = "5"
+    
+    # Corrective waves
     CORRECTIVE_A = "A"
     CORRECTIVE_B = "B"
     CORRECTIVE_C = "C"
+    
+    # Intermediate degree (sub-waves)
+    MINOR_1 = "(1)"
+    MINOR_2 = "(2)"
+    MINOR_3 = "(3)"
+    MINOR_4 = "(4)"
+    MINOR_5 = "(5)"
+    
+    MINOR_A = "(A)"
+    MINOR_B = "(B)"
+    MINOR_C = "(C)"
+    
+    # Minute degree (sub-sub-waves)
+    MINUTE_1 = "(i)"
+    MINUTE_2 = "(ii)"
+    MINUTE_3 = "(iii)"
+    MINUTE_4 = "(iv)"
+    MINUTE_5 = "(v)"
+    
+    MINUTE_A = "(a)"
+    MINUTE_B = "(b)"
+    MINUTE_C = "(c)"
+    
     UNKNOWN = "?"
+
+
+class WaveDegree(Enum):
+    """Elliott Wave degrees for proper hierarchy."""
+    SUPERCYCLE = "SUPERCYCLE"
+    CYCLE = "CYCLE"
+    PRIMARY = "PRIMARY"
+    INTERMEDIATE = "INTERMEDIATE"
+    MINOR = "MINOR"
+    MINUTE = "MINUTE"
+    MINUETTE = "MINUETTE"
 
 
 class TrendDirection(Enum):
@@ -36,6 +73,9 @@ class TrendDirection(Enum):
     UP = 1
     DOWN = -1
     SIDEWAYS = 0
+
+# Alias for backward compatibility
+Direction = TrendDirection
 
 
 @dataclass
@@ -46,6 +86,7 @@ class WavePoint:
     index: int
     wave_type: WaveType
     confidence: float = 0.0
+    degree: WaveDegree = WaveDegree.PRIMARY
     
     def __post_init__(self):
         if isinstance(self.timestamp, str):
@@ -54,17 +95,22 @@ class WavePoint:
 
 @dataclass
 class Wave:
-    """Represents an Elliott Wave."""
+    """Represents an Elliott Wave with enhanced properties."""
     start_point: WavePoint
     end_point: WavePoint
     wave_type: WaveType
     direction: TrendDirection
     confidence: float
+    degree: WaveDegree = WaveDegree.PRIMARY
     fibonacci_ratios: Dict[str, float] = None
+    invalidation_level: Optional[float] = None
+    target_levels: List[float] = None
     
     def __post_init__(self):
         if self.fibonacci_ratios is None:
             self.fibonacci_ratios = {}
+        if self.target_levels is None:
+            self.target_levels = []
     
     @property
     def duration(self) -> int:
@@ -103,6 +149,62 @@ class WaveDetector:
         
         logger.info(f"WaveDetector initialized with threshold: {self.zigzag_threshold}")
     
+    def determine_wave_degrees(self, waves: List[Wave], data: pd.DataFrame) -> List[Wave]:
+        """
+        Determine appropriate wave degrees based on timeframe and wave magnitude
+        
+        Args:
+            waves: List of detected waves
+            data: OHLCV DataFrame
+            
+        Returns:
+            List of waves with appropriate degrees assigned
+        """
+        if not waves:
+            return waves
+        
+        try:
+            # Calculate timeframe (days between data points)
+            if len(data) > 1:
+                time_diff = (data.index[1] - data.index[0]).days
+                if time_diff == 0:  # Intraday data
+                    time_diff = (data.index[1] - data.index[0]).seconds / 3600 / 24  # Convert to days
+            else:
+                time_diff = 1
+            
+            # Calculate average wave duration and magnitude
+            durations = [wave.duration for wave in waves]
+            magnitudes = [abs(wave.price_change_pct) for wave in waves]
+            
+            avg_duration = np.mean(durations) if durations else 10
+            avg_magnitude = np.mean(magnitudes) if magnitudes else 0.05
+            
+            # Assign degrees based on duration and magnitude
+            for wave in waves:
+                wave_duration_days = wave.duration * time_diff
+                wave_magnitude = abs(wave.price_change_pct)
+                
+                # Determine degree based on duration and magnitude
+                if wave_duration_days > 365 or wave_magnitude > 1.0:  # > 1 year or > 100% move
+                    wave.degree = WaveDegree.CYCLE
+                elif wave_duration_days > 90 or wave_magnitude > 0.3:   # > 3 months or > 30% move
+                    wave.degree = WaveDegree.PRIMARY
+                elif wave_duration_days > 21 or wave_magnitude > 0.1:   # > 3 weeks or > 10% move
+                    wave.degree = WaveDegree.INTERMEDIATE
+                elif wave_duration_days > 5 or wave_magnitude > 0.05:   # > 1 week or > 5% move
+                    wave.degree = WaveDegree.MINOR
+                else:
+                    wave.degree = WaveDegree.MINUTE
+            
+            return waves
+            
+        except Exception as e:
+            logger.warning(f"Error determining wave degrees: {e}")
+            # Default to PRIMARY degree
+            for wave in waves:
+                wave.degree = WaveDegree.PRIMARY
+            return waves
+    
     def detect_waves(self, data: pd.DataFrame) -> List[Wave]:
         """
         Detect Elliott Waves in price data.
@@ -127,12 +229,68 @@ class WaveDetector:
             # Step 3: Validate and score waves
             validated_waves = self._validate_waves(waves, data)
             
-            logger.info(f"Detected {len(validated_waves)} valid Elliott Waves")
-            return validated_waves
+            # Step 4: Determine appropriate wave degrees
+            final_waves = self.determine_wave_degrees(validated_waves, data)
+            
+            logger.info(f"Detected {len(final_waves)} valid Elliott Waves")
+            return final_waves
             
         except Exception as e:
             logger.error(f"Error detecting waves: {e}")
             return []
+    
+    def detect_multi_degree_waves(self, data: pd.DataFrame, max_degree: int = 3) -> List[Wave]:
+        """
+        Detect waves at multiple degrees recursively.
+        Args:
+            data: OHLCV DataFrame
+            max_degree: How many degrees deep to analyze (e.g., 3 = PRIMARY, INTERMEDIATE, MINOR)
+        Returns:
+            List of all detected waves with degree assigned
+        """
+        all_waves = []
+        degree_order = [WaveDegree.PRIMARY, WaveDegree.INTERMEDIATE, WaveDegree.MINOR, WaveDegree.MINUTE, WaveDegree.MINUETTE]
+        def _recursive_detect(data, current_degree_idx):
+            if current_degree_idx >= max_degree:
+                return []
+            degree = degree_order[current_degree_idx]
+            waves = self.detect_waves(data)
+            for wave in waves:
+                wave.degree = degree
+            all_waves.extend(waves)
+            # Recursively detect subwaves within each wave
+            for wave in waves:
+                sub_data = data.iloc[wave.start_point.index:wave.end_point.index+1]
+                _recursive_detect(sub_data, current_degree_idx + 1)
+        _recursive_detect(data, 0)
+        return all_waves
+
+    def validate_time_symmetry(self, waves: List[Wave]) -> List[Dict[str, float]]:
+        """
+        Validate time symmetry (duration ratios) for impulse and corrective patterns.
+        Returns a list of dicts with ratio info for each pattern found.
+        """
+        results = []
+        # Impulse: check 1:3:5 and 2:4 ratios
+        impulse_waves = [w for w in waves if w.wave_type in [WaveType.IMPULSE_1, WaveType.IMPULSE_2, WaveType.IMPULSE_3, WaveType.IMPULSE_4, WaveType.IMPULSE_5]]
+        if len(impulse_waves) == 5:
+            durs = [w.duration for w in impulse_waves]
+            ratios = {
+                '1:3': durs[0]/durs[2] if durs[2] else None,
+                '3:5': durs[2]/durs[4] if durs[4] else None,
+                '2:4': durs[1]/durs[3] if durs[3] else None,
+            }
+            results.append({'pattern': 'impulse', 'ratios': ratios})
+        # Corrective: check A:B:C ratios
+        corr_waves = [w for w in waves if w.wave_type in [WaveType.CORRECTIVE_A, WaveType.CORRECTIVE_B, WaveType.CORRECTIVE_C]]
+        if len(corr_waves) == 3:
+            durs = [w.duration for w in corr_waves]
+            ratios = {
+                'A:B': durs[0]/durs[1] if durs[1] else None,
+                'B:C': durs[1]/durs[2] if durs[2] else None,
+            }
+            results.append({'pattern': 'corrective', 'ratios': ratios})
+        return results
     
     def _get_swing_points(self, data: pd.DataFrame) -> List[WavePoint]:
         """
@@ -247,6 +405,9 @@ class WaveDetector:
                     # Add Fibonacci analysis
                     wave.fibonacci_ratios = self._calculate_fibonacci_ratios(wave, pattern_points)
                     
+                    # Calculate invalidation level
+                    wave.invalidation_level = self._calculate_invalidation_level(wave, pattern_points, j)
+                    
                     impulse_waves.append(wave)
         
         return impulse_waves
@@ -299,13 +460,18 @@ class WaveDetector:
                     # Add Fibonacci analysis
                     wave.fibonacci_ratios = self._calculate_fibonacci_ratios(wave, pattern_points)
                     
+                    # Calculate invalidation level (simpler for corrective waves)
+                    if wave_types[j] == WaveType.CORRECTIVE_A and j > 0:
+                        # A wave invalidation is typically the start of the preceding trend
+                        wave.invalidation_level = pattern_points[0].price
+                    
                     corrective_waves.append(wave)
         
         return corrective_waves
     
     def _validate_impulse_pattern(self, points: List[WavePoint], data: pd.DataFrame) -> bool:
         """
-        Validate if points form a valid 5-wave impulse pattern.
+        Validate if points form a valid 5-wave impulse pattern using strict Elliott Wave rules.
         
         Args:
             points: List of 6 points defining 5 waves
@@ -313,6 +479,50 @@ class WaveDetector:
             
         Returns:
             True if valid impulse pattern
+        """
+        if len(points) != 6:
+            return False
+        
+        try:
+            # Import validator here to avoid circular imports
+            from .elliott_wave_validator import ElliottWaveValidator
+            
+            # Create temporary waves for validation
+            temp_waves = []
+            wave_types = [WaveType.IMPULSE_1, WaveType.IMPULSE_2, WaveType.IMPULSE_3, 
+                         WaveType.IMPULSE_4, WaveType.IMPULSE_5]
+            
+            for i in range(5):
+                start_point = points[i]
+                end_point = points[i+1]
+                direction = TrendDirection.UP if end_point.price > start_point.price else TrendDirection.DOWN
+                
+                temp_wave = Wave(
+                    start_point=start_point,
+                    end_point=end_point,
+                    wave_type=wave_types[i],
+                    direction=direction,
+                    confidence=0.5  # Temporary confidence
+                )
+                temp_waves.append(temp_wave)
+            
+            # Use strict validator
+            validator = ElliottWaveValidator()
+            structure = validator.validate_impulse_structure(temp_waves, data)
+            
+            # Consider valid if score > 0.6 and no INVALID violations
+            has_invalid_violations = any(v.severity.value == "INVALID" for v in structure.violations)
+            
+            return structure.validation_score > 0.6 and not has_invalid_violations
+            
+        except Exception as e:
+            logger.debug(f"Error in strict impulse validation: {e}")
+            # Fallback to original validation logic
+            return self._validate_impulse_pattern_legacy(points, data)
+    
+    def _validate_impulse_pattern_legacy(self, points: List[WavePoint], data: pd.DataFrame) -> bool:
+        """
+        Legacy validation method (kept as fallback).
         """
         if len(points) != 6:
             return False
@@ -358,7 +568,7 @@ class WaveDetector:
     
     def _validate_corrective_pattern(self, points: List[WavePoint], data: pd.DataFrame) -> bool:
         """
-        Validate if points form a valid 3-wave corrective pattern.
+        Validate if points form a valid 3-wave corrective pattern using strict rules.
         
         Args:
             points: List of 4 points defining 3 waves
@@ -366,6 +576,49 @@ class WaveDetector:
             
         Returns:
             True if valid corrective pattern
+        """
+        if len(points) != 4:
+            return False
+        
+        try:
+            # Import validator here to avoid circular imports
+            from .elliott_wave_validator import ElliottWaveValidator
+            
+            # Create temporary waves for validation
+            temp_waves = []
+            wave_types = [WaveType.CORRECTIVE_A, WaveType.CORRECTIVE_B, WaveType.CORRECTIVE_C]
+            
+            for i in range(3):
+                start_point = points[i]
+                end_point = points[i+1]
+                direction = TrendDirection.UP if end_point.price > start_point.price else TrendDirection.DOWN
+                
+                temp_wave = Wave(
+                    start_point=start_point,
+                    end_point=end_point,
+                    wave_type=wave_types[i],
+                    direction=direction,
+                    confidence=0.5  # Temporary confidence
+                )
+                temp_waves.append(temp_wave)
+            
+            # Use strict validator
+            validator = ElliottWaveValidator()
+            structure = validator.validate_corrective_structure(temp_waves, data)
+            
+            # Consider valid if score > 0.5 and no INVALID violations
+            has_invalid_violations = any(v.severity.value == "INVALID" for v in structure.violations)
+            
+            return structure.validation_score > 0.5 and not has_invalid_violations
+            
+        except Exception as e:
+            logger.debug(f"Error in strict corrective validation: {e}")
+            # Fallback to original validation logic
+            return self._validate_corrective_pattern_legacy(points, data)
+    
+    def _validate_corrective_pattern_legacy(self, points: List[WavePoint], data: pd.DataFrame) -> bool:
+        """
+        Legacy corrective pattern validation (kept as fallback).
         """
         if len(points) != 4:
             return False
@@ -397,6 +650,41 @@ class WaveDetector:
         except Exception as e:
             logger.debug(f"Error validating corrective pattern: {e}")
             return False
+    
+    def _calculate_invalidation_level(self, wave: Wave, pattern_points: List[WavePoint], wave_index: int) -> Optional[float]:
+        """
+        Calculate invalidation level for Elliott Wave rules
+        
+        Args:
+            wave: Current wave
+            pattern_points: All points in the pattern
+            wave_index: Index of current wave in pattern
+            
+        Returns:
+            Invalidation price level or None
+        """
+        try:
+            if wave.wave_type == WaveType.IMPULSE_2 and wave_index >= 1:
+                # Wave 2 cannot retrace below the start of wave 1
+                return pattern_points[0].price
+            
+            elif wave.wave_type == WaveType.IMPULSE_4 and wave_index >= 3:
+                # Wave 4 cannot overlap with wave 1 territory (in most patterns)
+                return pattern_points[1].price  # End of wave 1
+            
+            elif wave.wave_type == WaveType.IMPULSE_5 and wave_index >= 4:
+                # Wave 5 should not fail to exceed wave 3 end
+                return pattern_points[3].price  # End of wave 3
+            
+            elif wave.wave_type in [WaveType.CORRECTIVE_A, WaveType.CORRECTIVE_C]:
+                # Corrective waves typically have invalidation at trend start
+                return pattern_points[0].price
+            
+            return None
+            
+        except Exception as e:
+            logger.debug(f"Error calculating invalidation level: {e}")
+            return None
     
     def _calculate_wave_confidence(
         self, 
@@ -628,6 +916,545 @@ class WaveDetector:
             'analysis': f"Currently in {latest_wave.wave_type.value} wave with {latest_wave.confidence:.2f} confidence"
         }
     
+    def generate_future_wave_scenarios(self, current_wave: Wave, all_waves: List[Wave], data: pd.DataFrame) -> List[Dict[str, Any]]:
+        """
+        Generate multiple future wave scenarios with different paths and confidence levels.
+        
+        Args:
+            current_wave: Current wave
+            all_waves: All detected waves
+            data: OHLCV DataFrame
+            
+        Returns:
+            List of future wave scenarios
+        """
+        scenarios = []
+        
+        try:
+            if current_wave.wave_type == WaveType.IMPULSE_1:
+                # Scenario A: Standard Wave 2 correction
+                scenarios.append({
+                    'scenario': 'A',
+                    'name': 'Standard Wave 2 Correction',
+                    'next_wave': 'Wave 2',
+                    'direction': 'Opposite to Wave 1',
+                    'fibonacci_targets': [
+                        current_wave.start_point.price * 0.618,  # 61.8% retracement
+                        current_wave.start_point.price * 0.5,    # 50% retracement
+                        current_wave.start_point.price * 0.382   # 38.2% retracement
+                    ],
+                    'likelihood': 0.8,
+                    'description': 'Standard corrective wave 2, typically retraces 50-61.8% of wave 1'
+                })
+                
+                # Scenario B: Shallow Wave 2
+                scenarios.append({
+                    'scenario': 'B',
+                    'name': 'Shallow Wave 2',
+                    'next_wave': 'Wave 2 (Shallow)',
+                    'direction': 'Opposite to Wave 1',
+                    'fibonacci_targets': [
+                        current_wave.start_point.price * 0.382,  # 38.2% retracement
+                        current_wave.start_point.price * 0.236   # 23.6% retracement
+                    ],
+                    'likelihood': 0.6,
+                    'description': 'Shallow correction, often in strong trends'
+                })
+                
+            elif current_wave.wave_type == WaveType.IMPULSE_2:
+                # Scenario A: Extended Wave 3
+                scenarios.append({
+                    'scenario': 'A',
+                    'name': 'Extended Wave 3',
+                    'next_wave': 'Wave 3 (Extended)',
+                    'direction': 'Same as Wave 1',
+                    'fibonacci_targets': [
+                        current_wave.end_point.price + (current_wave.price_change * 1.618),  # 161.8% extension
+                        current_wave.end_point.price + (current_wave.price_change * 2.618),  # 261.8% extension
+                        current_wave.end_point.price + (current_wave.price_change * 4.236)   # 423.6% extension
+                    ],
+                    'likelihood': 0.7,
+                    'description': 'Wave 3 is often the longest and strongest wave'
+                })
+                
+                # Scenario B: Normal Wave 3
+                scenarios.append({
+                    'scenario': 'B',
+                    'name': 'Normal Wave 3',
+                    'next_wave': 'Wave 3',
+                    'direction': 'Same as Wave 1',
+                    'fibonacci_targets': [
+                        current_wave.end_point.price + (current_wave.price_change * 1.0),   # 100% of wave 1
+                        current_wave.end_point.price + (current_wave.price_change * 1.272), # 127.2% extension
+                        current_wave.end_point.price + (current_wave.price_change * 1.618)  # 161.8% extension
+                    ],
+                    'likelihood': 0.8,
+                    'description': 'Standard wave 3, typically 100-161.8% of wave 1'
+                })
+                
+            elif current_wave.wave_type == WaveType.IMPULSE_3:
+                # Scenario A: Standard Wave 4 correction
+                scenarios.append({
+                    'scenario': 'A',
+                    'name': 'Standard Wave 4 Correction',
+                    'next_wave': 'Wave 4',
+                    'direction': 'Opposite to Wave 3',
+                    'fibonacci_targets': [
+                        current_wave.start_point.price * 0.382,  # 38.2% retracement
+                        current_wave.start_point.price * 0.236   # 23.6% retracement
+                    ],
+                    'likelihood': 0.8,
+                    'description': 'Wave 4 typically retraces 23.6-38.2% of wave 3'
+                })
+                
+                # Scenario B: Deep Wave 4
+                scenarios.append({
+                    'scenario': 'B',
+                    'name': 'Deep Wave 4',
+                    'next_wave': 'Wave 4 (Deep)',
+                    'direction': 'Opposite to Wave 3',
+                    'fibonacci_targets': [
+                        current_wave.start_point.price * 0.5,    # 50% retracement
+                        current_wave.start_point.price * 0.618   # 61.8% retracement
+                    ],
+                    'likelihood': 0.4,
+                    'description': 'Deep correction, less common but possible'
+                })
+                
+            elif current_wave.wave_type == WaveType.IMPULSE_4:
+                # Scenario A: Final Wave 5
+                scenarios.append({
+                    'scenario': 'A',
+                    'name': 'Final Wave 5',
+                    'next_wave': 'Wave 5',
+                    'direction': 'Same as Wave 3',
+                    'fibonacci_targets': [
+                        current_wave.end_point.price + (current_wave.price_change * 0.618),  # 61.8% of wave 1
+                        current_wave.end_point.price + (current_wave.price_change * 1.0),   # 100% of wave 1
+                        current_wave.end_point.price + (current_wave.price_change * 1.618)  # 161.8% of wave 1
+                    ],
+                    'likelihood': 0.9,
+                    'description': 'Final impulse wave, typically 61.8-100% of wave 1'
+                })
+                
+            elif current_wave.wave_type == WaveType.IMPULSE_5:
+                # Scenario A: ABC Correction
+                scenarios.append({
+                    'scenario': 'A',
+                    'name': 'ABC Correction',
+                    'next_wave': 'Wave A',
+                    'direction': 'Opposite to Wave 5',
+                    'fibonacci_targets': [
+                        current_wave.start_point.price * 0.618,  # 61.8% retracement
+                        current_wave.start_point.price * 0.5,    # 50% retracement
+                        current_wave.start_point.price * 0.382   # 38.2% retracement
+                    ],
+                    'likelihood': 0.8,
+                    'description': 'Standard ABC corrective pattern'
+                })
+                
+                # Scenario B: Complex Correction (WXY)
+                scenarios.append({
+                    'scenario': 'B',
+                    'name': 'Complex Correction (WXY)',
+                    'next_wave': 'Wave W',
+                    'direction': 'Opposite to Wave 5',
+                    'fibonacci_targets': [
+                        current_wave.start_point.price * 0.786,  # 78.6% retracement
+                        current_wave.start_point.price * 0.618   # 61.8% retracement
+                    ],
+                    'likelihood': 0.6,
+                    'description': 'Complex correction with multiple sub-waves'
+                })
+                
+            elif current_wave.wave_type == WaveType.CORRECTIVE_A:
+                # Scenario A: Standard Wave B
+                scenarios.append({
+                    'scenario': 'A',
+                    'name': 'Standard Wave B',
+                    'next_wave': 'Wave B',
+                    'direction': 'Partial retracement of A',
+                    'fibonacci_targets': [
+                        current_wave.end_point.price * 0.5,      # 50% retracement
+                        current_wave.end_point.price * 0.618,    # 61.8% retracement
+                        current_wave.end_point.price * 0.786     # 78.6% retracement
+                    ],
+                    'likelihood': 0.8,
+                    'description': 'Wave B typically retraces 50-78.6% of wave A'
+                })
+                
+            elif current_wave.wave_type == WaveType.CORRECTIVE_B:
+                # Scenario A: Final Wave C
+                scenarios.append({
+                    'scenario': 'A',
+                    'name': 'Final Wave C',
+                    'next_wave': 'Wave C',
+                    'direction': 'Same as Wave A',
+                    'fibonacci_targets': [
+                        current_wave.end_point.price - (current_wave.price_change * 1.0),   # 100% of wave A
+                        current_wave.end_point.price - (current_wave.price_change * 1.272), # 127.2% of wave A
+                        current_wave.end_point.price - (current_wave.price_change * 1.618)  # 161.8% of wave A
+                    ],
+                    'likelihood': 0.9,
+                    'description': 'Wave C typically equals or extends wave A'
+                })
+                
+            elif current_wave.wave_type == WaveType.CORRECTIVE_C:
+                # Scenario A: New Impulse Cycle
+                scenarios.append({
+                    'scenario': 'A',
+                    'name': 'New Impulse Cycle',
+                    'next_wave': 'New Wave 1',
+                    'direction': 'New trend direction',
+                    'fibonacci_targets': [
+                        current_wave.end_point.price * 1.272,    # 127.2% extension
+                        current_wave.end_point.price * 1.618,    # 161.8% extension
+                        current_wave.end_point.price * 2.618     # 261.8% extension
+                    ],
+                    'likelihood': 0.7,
+                    'description': 'New impulse cycle beginning'
+                })
+                
+        except Exception as e:
+            logger.error(f"Error generating future scenarios: {e}")
+            
+        return scenarios
+
+    def generate_advanced_future_scenarios(
+        self, 
+        current_wave: Wave, 
+        all_waves: List[Wave], 
+        data: pd.DataFrame,
+        include_time_projections: bool = True,
+        include_invalidation_levels: bool = True,
+        include_complex_patterns: bool = True
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate advanced future wave scenarios with time projections, invalidation levels, and complex patterns.
+        
+        Args:
+            current_wave: Current wave
+            all_waves: All detected waves
+            data: OHLCV DataFrame
+            include_time_projections: Whether to include time-based projections
+            include_invalidation_levels: Whether to include invalidation levels
+            include_complex_patterns: Whether to include complex correction patterns
+            
+        Returns:
+            List of advanced future wave scenarios
+        """
+        scenarios = []
+        
+        try:
+            # Get base scenarios
+            base_scenarios = self.generate_future_wave_scenarios(current_wave, all_waves, data)
+            
+            for base_scenario in base_scenarios:
+                # Enhance with advanced features
+                enhanced_scenario = base_scenario.copy()
+                
+                # Add time-based projections
+                if include_time_projections:
+                    enhanced_scenario.update(self._add_time_projections(current_wave, base_scenario, data))
+                
+                # Add invalidation levels
+                if include_invalidation_levels:
+                    enhanced_scenario.update(self._add_invalidation_levels(current_wave, base_scenario, data))
+                
+                # Add complex pattern scenarios
+                if include_complex_patterns:
+                    complex_scenarios = self._generate_complex_pattern_scenarios(current_wave, base_scenario, data)
+                    scenarios.extend(complex_scenarios)
+                
+                # Add historical pattern matching
+                enhanced_scenario.update(self._add_historical_pattern_matching(current_wave, all_waves, data))
+                
+                scenarios.append(enhanced_scenario)
+            
+            # Add triangle and diagonal scenarios
+            if include_complex_patterns:
+                triangle_scenarios = self._generate_triangle_scenarios(current_wave, data)
+                diagonal_scenarios = self._generate_diagonal_scenarios(current_wave, data)
+                scenarios.extend(triangle_scenarios)
+                scenarios.extend(diagonal_scenarios)
+            
+            return scenarios
+            
+        except Exception as e:
+            logger.error(f"Error generating advanced scenarios: {e}")
+            return []
+
+    def _add_time_projections(self, current_wave: Wave, scenario: Dict[str, Any], data: pd.DataFrame) -> Dict[str, Any]:
+        """Add time-based projections to a scenario."""
+        time_projections = {}
+        
+        try:
+            # Calculate average wave duration from historical data
+            if len(data) > 20:
+                recent_waves = [w for w in all_waves if w.end_point.timestamp > data.index[-20]]
+                if recent_waves:
+                    avg_duration = np.mean([w.duration for w in recent_waves])
+                    time_projections['estimated_duration'] = int(avg_duration)
+                    time_projections['estimated_completion'] = current_wave.end_point.timestamp + pd.Timedelta(hours=avg_duration)
+            
+            # Add Fibonacci time ratios
+            if current_wave.duration > 0:
+                time_projections['fibonacci_time_targets'] = [
+                    current_wave.end_point.timestamp + pd.Timedelta(hours=int(current_wave.duration * 0.618)),
+                    current_wave.end_point.timestamp + pd.Timedelta(hours=int(current_wave.duration * 1.0)),
+                    current_wave.end_point.timestamp + pd.Timedelta(hours=int(current_wave.duration * 1.618))
+                ]
+            
+            return {'time_projections': time_projections}
+            
+        except Exception as e:
+            logger.error(f"Error adding time projections: {e}")
+            return {}
+
+    def _add_invalidation_levels(self, current_wave: Wave, scenario: Dict[str, Any], data: pd.DataFrame) -> Dict[str, Any]:
+        """Add invalidation levels to a scenario."""
+        invalidation_levels = {}
+        
+        try:
+            if current_wave.wave_type in [WaveType.IMPULSE_1, WaveType.IMPULSE_3, WaveType.IMPULSE_5]:
+                # For impulse waves, invalidation is typically the start of the previous wave
+                invalidation_levels['primary'] = current_wave.start_point.price
+                invalidation_levels['secondary'] = current_wave.start_point.price * 0.95  # 5% buffer
+                
+            elif current_wave.wave_type in [WaveType.CORRECTIVE_A, WaveType.CORRECTIVE_B, WaveType.CORRECTIVE_C]:
+                # For corrective waves, invalidation is typically the end of the previous impulse
+                invalidation_levels['primary'] = current_wave.end_point.price
+                invalidation_levels['secondary'] = current_wave.end_point.price * 1.05  # 5% buffer
+                
+            # Add scenario-specific invalidation
+            if scenario.get('fibonacci_targets'):
+                invalidation_levels['scenario_specific'] = scenario['fibonacci_targets'][0] * 0.9  # 10% below target
+                
+            return {'invalidation_levels': invalidation_levels}
+            
+        except Exception as e:
+            logger.error(f"Error adding invalidation levels: {e}")
+            return {}
+
+    def _generate_complex_pattern_scenarios(self, current_wave: Wave, base_scenario: Dict[str, Any], data: pd.DataFrame) -> List[Dict[str, Any]]:
+        """Generate complex correction pattern scenarios."""
+        complex_scenarios = []
+        
+        try:
+            if current_wave.wave_type == WaveType.IMPULSE_5:
+                # WXY Complex Correction
+                wxy_scenario = base_scenario.copy()
+                wxy_scenario.update({
+                    'scenario': 'WXY',
+                    'name': 'WXY Complex Correction',
+                    'next_wave': 'Wave W',
+                    'pattern_type': 'complex_correction',
+                    'sub_waves': ['W', 'X', 'Y'],
+                    'fibonacci_targets': [
+                        current_wave.start_point.price * 0.786,  # 78.6% retracement
+                        current_wave.start_point.price * 0.618,  # 61.8% retracement
+                        current_wave.start_point.price * 0.5     # 50% retracement
+                    ],
+                    'likelihood': 0.4,
+                    'description': 'Complex WXY correction with multiple sub-waves'
+                })
+                complex_scenarios.append(wxy_scenario)
+                
+                # WXYXZ Complex Correction
+                wxyxz_scenario = base_scenario.copy()
+                wxyxz_scenario.update({
+                    'scenario': 'WXYXZ',
+                    'name': 'WXYXZ Complex Correction',
+                    'next_wave': 'Wave W',
+                    'pattern_type': 'complex_correction',
+                    'sub_waves': ['W', 'X', 'Y', 'X2', 'Z'],
+                    'fibonacci_targets': [
+                        current_wave.start_point.price * 0.886,  # 88.6% retracement
+                        current_wave.start_point.price * 0.786,  # 78.6% retracement
+                        current_wave.start_point.price * 0.618   # 61.8% retracement
+                    ],
+                    'likelihood': 0.2,
+                    'description': 'Extended complex correction with five sub-waves'
+                })
+                complex_scenarios.append(wxyxz_scenario)
+                
+        except Exception as e:
+            logger.error(f"Error generating complex pattern scenarios: {e}")
+            
+        return complex_scenarios
+
+    def _generate_triangle_scenarios(self, current_wave: Wave, data: pd.DataFrame) -> List[Dict[str, Any]]:
+        """Generate triangle pattern scenarios."""
+        triangle_scenarios = []
+        
+        try:
+            if current_wave.wave_type in [WaveType.IMPULSE_3, WaveType.IMPULSE_4]:
+                # Contracting Triangle
+                contracting_scenario = {
+                    'scenario': 'TRIANGLE_CONTRACTING',
+                    'name': 'Contracting Triangle',
+                    'next_wave': 'Triangle A',
+                    'pattern_type': 'triangle',
+                    'triangle_type': 'contracting',
+                    'sub_waves': ['A', 'B', 'C', 'D', 'E'],
+                    'fibonacci_targets': [
+                        current_wave.end_point.price * 0.618,  # 61.8% retracement
+                        current_wave.end_point.price * 0.5,    # 50% retracement
+                        current_wave.end_point.price * 0.382   # 38.2% retracement
+                    ],
+                    'likelihood': 0.3,
+                    'description': 'Contracting triangle pattern in wave 4 or B',
+                    'time_projections': {
+                        'estimated_duration': int(current_wave.duration * 1.5),
+                        'breakout_target': current_wave.end_point.price * 0.618
+                    }
+                }
+                triangle_scenarios.append(contracting_scenario)
+                
+                # Expanding Triangle
+                expanding_scenario = {
+                    'scenario': 'TRIANGLE_EXPANDING',
+                    'name': 'Expanding Triangle',
+                    'next_wave': 'Triangle A',
+                    'pattern_type': 'triangle',
+                    'triangle_type': 'expanding',
+                    'sub_waves': ['A', 'B', 'C', 'D', 'E'],
+                    'fibonacci_targets': [
+                        current_wave.end_point.price * 0.786,  # 78.6% retracement
+                        current_wave.end_point.price * 0.886,  # 88.6% retracement
+                        current_wave.end_point.price * 1.0     # 100% retracement
+                    ],
+                    'likelihood': 0.2,
+                    'description': 'Expanding triangle pattern, less common',
+                    'time_projections': {
+                        'estimated_duration': int(current_wave.duration * 2.0),
+                        'breakout_target': current_wave.end_point.price * 0.786
+                    }
+                }
+                triangle_scenarios.append(expanding_scenario)
+                
+        except Exception as e:
+            logger.error(f"Error generating triangle scenarios: {e}")
+            
+        return triangle_scenarios
+
+    def _generate_diagonal_scenarios(self, current_wave: Wave, data: pd.DataFrame) -> List[Dict[str, Any]]:
+        """Generate diagonal pattern scenarios."""
+        diagonal_scenarios = []
+        
+        try:
+            if current_wave.wave_type == WaveType.IMPULSE_1:
+                # Leading Diagonal
+                leading_scenario = {
+                    'scenario': 'DIAGONAL_LEADING',
+                    'name': 'Leading Diagonal',
+                    'next_wave': 'Diagonal 1',
+                    'pattern_type': 'diagonal',
+                    'diagonal_type': 'leading',
+                    'sub_waves': ['1', '2', '3', '4', '5'],
+                    'fibonacci_targets': [
+                        current_wave.end_point.price * 1.272,  # 127.2% extension
+                        current_wave.end_point.price * 1.618,  # 161.8% extension
+                        current_wave.end_point.price * 2.0     # 200% extension
+                    ],
+                    'likelihood': 0.1,
+                    'description': 'Leading diagonal in wave 1 or A',
+                    'characteristics': {
+                        'wave_4_overlaps_wave_1': True,
+                        'wedge_shaped': True,
+                        'subwaves_are_3s_or_5s': True
+                    }
+                }
+                diagonal_scenarios.append(leading_scenario)
+                
+            elif current_wave.wave_type == WaveType.IMPULSE_5:
+                # Ending Diagonal
+                ending_scenario = {
+                    'scenario': 'DIAGONAL_ENDING',
+                    'name': 'Ending Diagonal',
+                    'next_wave': 'Diagonal 5',
+                    'pattern_type': 'diagonal',
+                    'diagonal_type': 'ending',
+                    'sub_waves': ['1', '2', '3', '4', '5'],
+                    'fibonacci_targets': [
+                        current_wave.end_point.price * 0.618,  # 61.8% extension
+                        current_wave.end_point.price * 1.0,    # 100% extension
+                        current_wave.end_point.price * 1.272   # 127.2% extension
+                    ],
+                    'likelihood': 0.15,
+                    'description': 'Ending diagonal in wave 5 or C',
+                    'characteristics': {
+                        'wave_4_overlaps_wave_1': True,
+                        'wedge_shaped': True,
+                        'subwaves_are_3s': True
+                    }
+                }
+                diagonal_scenarios.append(ending_scenario)
+                
+        except Exception as e:
+            logger.error(f"Error generating diagonal scenarios: {e}")
+            
+        return diagonal_scenarios
+
+    def _add_historical_pattern_matching(self, current_wave: Wave, all_waves: List[Wave], data: pd.DataFrame) -> Dict[str, Any]:
+        """Add historical pattern matching for likelihood scoring."""
+        pattern_matching = {}
+        
+        try:
+            # Find similar historical patterns
+            similar_patterns = self._find_similar_patterns(current_wave, all_waves, data)
+            
+            if similar_patterns:
+                # Calculate pattern similarity score
+                avg_similarity = np.mean([p['similarity'] for p in similar_patterns])
+                pattern_matching['historical_similarity'] = avg_similarity
+                pattern_matching['similar_patterns_count'] = len(similar_patterns)
+                pattern_matching['most_similar_pattern'] = max(similar_patterns, key=lambda x: x['similarity'])
+                
+                # Adjust likelihood based on historical patterns
+                pattern_matching['likelihood_adjustment'] = avg_similarity * 0.2  # Up to 20% adjustment
+            else:
+                pattern_matching['historical_similarity'] = 0.0
+                pattern_matching['similar_patterns_count'] = 0
+                pattern_matching['likelihood_adjustment'] = 0.0
+                
+            return {'pattern_matching': pattern_matching}
+            
+        except Exception as e:
+            logger.error(f"Error adding historical pattern matching: {e}")
+            return {}
+
+    def _find_similar_patterns(self, current_wave: Wave, all_waves: List[Wave], data: pd.DataFrame) -> List[Dict[str, Any]]:
+        """Find similar historical patterns for likelihood scoring."""
+        similar_patterns = []
+        
+        try:
+            # Look for waves with similar characteristics
+            for wave in all_waves:
+                if wave.wave_type == current_wave.wave_type and wave != current_wave:
+                    # Calculate similarity based on price change percentage and duration
+                    price_similarity = 1 - abs(wave.price_change_pct - current_wave.price_change_pct) / max(abs(wave.price_change_pct), abs(current_wave.price_change_pct), 0.01)
+                    duration_similarity = 1 - abs(wave.duration - current_wave.duration) / max(wave.duration, current_wave.duration, 1)
+                    
+                    overall_similarity = (price_similarity + duration_similarity) / 2
+                    
+                    if overall_similarity > 0.7:  # Only include highly similar patterns
+                        similar_patterns.append({
+                            'wave': wave,
+                            'similarity': overall_similarity,
+                            'price_similarity': price_similarity,
+                            'duration_similarity': duration_similarity,
+                            'timestamp': wave.end_point.timestamp
+                        })
+            
+            # Sort by similarity
+            similar_patterns.sort(key=lambda x: x['similarity'], reverse=True)
+            
+        except Exception as e:
+            logger.error(f"Error finding similar patterns: {e}")
+            
+        return similar_patterns
+
     def _predict_next_wave(self, current_wave: Wave, all_waves: List[Wave]) -> Optional[Dict[str, Any]]:
         """
         Predict the next likely wave based on Elliott Wave theory.

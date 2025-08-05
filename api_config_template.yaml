@@ -1,0 +1,98 @@
+# Technical Analysis API Configuration
+# Copy this file to api_config.yaml and customize as needed
+
+# Server Configuration
+server:
+  host: "127.0.0.1"  # Use "0.0.0.0" for public access
+  port: 5000
+  debug: true
+  
+# Exchange API Configuration
+exchanges:
+  binance:
+    enabled: true
+    base_url: "https://api.binance.com"
+    rate_limit: 1200  # requests per minute
+    default_limit: 500  # default candles to fetch
+    
+  bybit:
+    enabled: true
+    base_url: "https://api.bybit.com"
+    rate_limit: 600  # requests per minute
+    default_limit: 500
+    
+# Analysis Configuration
+analysis:
+  elliott_wave:
+    min_waves: 3
+    max_waves: 13
+    validation_threshold: 0.1
+    fibonacci_tolerance: 0.05
+    
+  confluence:
+    methods:
+      - fibonacci_levels
+      - support_resistance
+      - momentum_indicators
+      - chart_patterns
+      - volume_analysis
+      - harmonic_patterns
+    
+    fibonacci:
+      retracement_levels: [0.236, 0.382, 0.5, 0.618, 0.786]
+      extension_levels: [1.0, 1.236, 1.382, 1.618, 2.0, 2.618]
+      tolerance: 0.01  # 1% tolerance for level matching
+      
+    support_resistance:
+      lookback_period: 50
+      min_touches: 2
+      tolerance: 0.005  # 0.5% tolerance
+      
+    momentum:
+      rsi_period: 14
+      rsi_overbought: 70
+      rsi_oversold: 30
+      macd_fast: 12
+      macd_slow: 26
+      macd_signal: 9
+      
+    volume:
+      sma_period: 20
+      volume_spike_threshold: 1.5
+      
+  confidence_levels:
+    high_threshold: 5  # 5+ confluences
+    medium_threshold: 3  # 3-4 confluences
+    # low is <3 confluences
+    
+# Target Zone Configuration
+target_zones:
+  max_zones: 10
+  min_probability: 0.1  # 10% minimum probability
+  risk_reward_threshold: 1.0  # minimum R:R ratio
+  
+# Caching (optional)
+cache:
+  enabled: false
+  ttl_seconds: 300  # 5 minutes
+  max_entries: 1000
+  
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  file: "logs/technical_analysis.log"
+  max_size: "10MB"
+  backup_count: 5
+  
+# Performance
+performance:
+  max_concurrent_requests: 10
+  request_timeout: 30  # seconds
+  max_data_points: 2000  # maximum candles per request
+  
+# Security (for production)
+security:
+  api_key_required: false
+  rate_limiting: true
+  cors_enabled: true
+  allowed_origins: ["http://localhost:3000", "http://127.0.0.1:3000"]

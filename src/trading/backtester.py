@@ -792,3 +792,6 @@ if __name__ == "__main__":
     
     print(f"\nBacktest Period: {report['period']['start_date']} to {report['period']['end_date']}")
     print(f"Duration: {report['period']['duration_days']} days")
+
+# Alias for web application compatibility
+Backtester = BacktestEngine

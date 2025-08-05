@@ -12,9 +12,10 @@ yfinance>=0.2.0
 
 # Machine Learning
 scikit-learn>=1.0.0
+dtaidistance>=2.3.0
 
 # Optional ML libraries (install separately if needed)
-# tensorflow>=2.13.0  # For advanced ML models
+tensorflow-cpu>=2.13.0  # CPU-only version for better Windows compatibility
 # torch>=1.11.0       # For PyTorch models  
 # xgboost>=1.6.0      # For gradient boosting
 

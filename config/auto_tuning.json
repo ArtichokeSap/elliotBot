@@ -1,0 +1,15 @@
+{
+  "optimal_params": {
+    "AAPL_1h": {
+      "threshold": 0.03,
+      "min_wave_length": 5,
+      "lookback_periods": 10
+    },
+    "AUDUSD=X_1d": {
+      "threshold": 0.03,
+      "min_wave_length": 5,
+      "lookback_periods": 10
+    }
+  },
+  "last_updated": "2025-08-05T11:21:55.659056"
+}

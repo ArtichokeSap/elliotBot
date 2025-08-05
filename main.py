@@ -16,6 +16,7 @@ from src.data.data_loader import DataLoader
 from src.analysis.wave_detector import WaveDetector
 from src.analysis.fibonacci import FibonacciAnalyzer
 from src.visualization.visualizer import WaveVisualizer
+from src.visualization.tradingview_style import TradingViewStyleVisualizer
 from src.trading.strategy import ElliottWaveStrategy
 from src.trading.backtester import BacktestEngine
 from src.utils.config import get_config
@@ -51,6 +52,32 @@ def analyze_symbol(symbol: str, period: str = "1y", show_chart: bool = True, sav
         detector = WaveDetector()
         waves = detector.detect_waves(data)
         logger.info(f"Detected {len(waves)} Elliott Waves")
+        
+        # Enhanced Elliott Wave validation
+        from src.analysis.elliott_wave_validator import ElliottWaveValidator, WaveStructure
+        validator = ElliottWaveValidator()
+        
+        # Group waves into structures and validate
+        validated_structures = []
+        validation_reports = []
+        
+        # Look for impulse patterns (5 waves)
+        for i in range(len(waves) - 4):
+            impulse_candidate = waves[i:i+5]
+            if all(w.wave_type.value in ['1', '2', '3', '4', '5'] for w in impulse_candidate):
+                structure = validator.validate_impulse_structure(impulse_candidate, data)
+                validated_structures.append(structure)
+                if structure.validation_score > 0.6:  # Only report high-confidence structures
+                    validation_reports.append(validator.get_validation_summary(structure))
+        
+        # Look for corrective patterns (3 waves)
+        for i in range(len(waves) - 2):
+            corrective_candidate = waves[i:i+3]
+            if all(w.wave_type.value in ['A', 'B', 'C'] for w in corrective_candidate):
+                structure = validator.validate_corrective_structure(corrective_candidate, data)
+                validated_structures.append(structure)
+                if structure.validation_score > 0.5:  # Lower threshold for corrective patterns
+                    validation_reports.append(validator.get_validation_summary(structure))
         
         # Fibonacci analysis
         fib_analyzer = FibonacciAnalyzer()
@@ -96,6 +123,19 @@ def analyze_symbol(symbol: str, period: str = "1y", show_chart: bool = True, sav
                       f"Price: ${wave.start_point.price:.2f} -> ${wave.end_point.price:.2f} "
                       f"({price_change:+.1f}%), "
                       f"Confidence: {wave.confidence:.2f}")
+                
+                # Show invalidation level if available
+                if hasattr(wave, 'invalidation_level') and wave.invalidation_level:
+                    print(f"  Invalidation Level: ${wave.invalidation_level:.2f}")
+        
+        # Display validation reports
+        if validation_reports:
+            print(f"\n=== ELLIOTT WAVE RULE VALIDATION ===")
+            print(f"Found {len(validated_structures)} wave structures for analysis")
+            
+            for i, report in enumerate(validation_reports[:3], 1):  # Show top 3 structures
+                print(f"\n--- STRUCTURE {i} ---")
+                print(report)
         
         # Fibonacci analysis
         if fib_analysis:
@@ -116,17 +156,28 @@ def analyze_symbol(symbol: str, period: str = "1y", show_chart: bool = True, sav
         if show_chart or save_chart:
             visualizer = WaveVisualizer()
             
-            # Create main chart
+            # Create main chart (original style)
             fig = visualizer.plot_waves(data, waves, fib_analysis, title=f"Elliott Wave Analysis - {symbol}")
             
+            # Create TradingView-style chart
+            tv_visualizer = TradingViewStyleVisualizer()
+            tv_fig = tv_visualizer.create_professional_chart(data, waves, symbol, fib_analysis)
+            
             if save_chart:
+                # Save both charts
                 save_path = f"charts/{symbol}_elliott_wave_analysis.html"
+                tv_save_path = f"charts/{symbol}_tradingview_elliott_waves.html"
                 Path("charts").mkdir(exist_ok=True)
+                
                 visualizer.save_chart(fig, save_path)
+                tv_fig.write_html(tv_save_path)
+                
                 print(f"\nChart saved to: {save_path}")
+                print(f"TradingView-style chart saved to: {tv_save_path}")
             
             if show_chart:
-                fig.show()
+                print(f"\n🚀 Opening professional TradingView-style chart...")
+                tv_fig.show()
         
     except Exception as e:
         logger.error(f"Error analyzing {symbol}: {e}")

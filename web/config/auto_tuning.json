@@ -1,0 +1,10 @@
+{
+  "optimal_params": {
+    "AUDUSD=X_1d": {
+      "threshold": 0.03,
+      "min_wave_length": 5,
+      "lookback_periods": 10
+    }
+  },
+  "last_updated": "2025-08-04T17:08:01.410074"
+}
