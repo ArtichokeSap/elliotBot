@@ -29,6 +29,74 @@ setup_logging()
 logger = get_logger(__name__)
 
 
+def validate_symbol(symbol: str) -> str:
+    """
+    Validate trading symbol format to prevent injection attacks.
+    
+    Args:
+        symbol: Trading symbol to validate
+        
+    Returns:
+        Validated and normalized symbol
+        
+    Raises:
+        ValueError: If symbol format is invalid
+    """
+    import re
+    # Allow alphanumeric, dots, hyphens, equals (for forex), and underscores
+    # Length limit prevents resource exhaustion
+    if not symbol or len(symbol) > 20:
+        raise ValueError(
+            f"Symbol must be 1-20 characters, got: {len(symbol) if symbol else 0}"
+        )
+    
+    if not re.match(r'^[A-Z0-9.\-_=]{1,20}$', symbol.upper()):
+        raise ValueError(
+            f"Invalid symbol format: '{symbol}'. "
+            "Symbols must contain only: A-Z, 0-9, ., -, =, _"
+        )
+    
+    return symbol.upper()
+
+
+def validate_period(period: str) -> str:
+    """
+    Validate period parameter against whitelist.
+    
+    Args:
+        period: Time period string
+        
+    Returns:
+        Validated period
+        
+    Raises:
+        ValueError: If period is not in whitelist
+    """
+    valid_periods = ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max']
+    if period not in valid_periods:
+        raise ValueError(
+            f"Invalid period: '{period}'. Must be one of: {', '.join(valid_periods)}"
+        )
+    return period
+
+
+def sanitize_filename(name: str) -> str:
+    """
+    Sanitize string for safe use in filenames.
+    
+    Args:
+        name: String to sanitize
+        
+    Returns:
+        Sanitized string safe for filesystem use
+    """
+    import re
+    # Remove any path separators and keep only safe characters
+    safe_name = re.sub(r'[^\w\-_.]', '_', name)
+    # Limit length to prevent filesystem issues
+    return safe_name[:50]
+
+
 def analyze_symbol(symbol: str, period: str = "1y", show_chart: bool = True, save_chart: bool = False):
     """
     Perform Elliott Wave analysis on a symbol.
@@ -194,8 +262,10 @@ def run_backtest(symbol: str, period: str = "2y", initial_capital: float = 10000
                       f"P&L: ${trade.pnl:.2f} ({trade.pnl_pct:.2%}) "
                       f"Wave: {trade.wave_type}")
         
-        # Save results
-        results_path = f"backtest_results_{symbol}_{period}.json"
+        # Save results with sanitized filename
+        safe_symbol = sanitize_filename(symbol)
+        safe_period = sanitize_filename(period)
+        results_path = f"backtest_results_{safe_symbol}_{safe_period}.json"
         import json
         with open(results_path, 'w') as f:
             json.dump(report, f, indent=2)
@@ -276,35 +346,43 @@ def main():
     
     args = parser.parse_args()
     
+    # Validate and sanitize inputs
+    try:
+        validated_symbol = validate_symbol(args.symbol)
+        validated_period = validate_period(args.period)
+    except ValueError as e:
+        print(f"❌ Invalid input: {e}")
+        sys.exit(1)
+    
     # Load configuration if provided
     if args.config:
         config = get_config(args.config)
     
     print(f"Elliott Wave Trading Bot")
     print(f"Command: {args.command}")
-    print(f"Symbol: {args.symbol}")
-    print(f"Period: {args.period}")
+    print(f"Symbol: {validated_symbol}")
+    print(f"Period: {validated_period}")
     
     try:
         if args.command == "analyze":
             analyze_symbol(
-                symbol=args.symbol,
-                period=args.period,
+                symbol=validated_symbol,
+                period=validated_period,
                 show_chart=not args.no_chart,
                 save_chart=args.save_chart
             )
         
         elif args.command == "backtest":
             run_backtest(
-                symbol=args.symbol,
-                period=args.period,
+                symbol=validated_symbol,
+                period=validated_period,
                 initial_capital=args.capital
             )
         
         elif args.command == "signals":
             generate_signals(
-                symbol=args.symbol,
-                period=args.period
+                symbol=validated_symbol,
+                period=validated_period
             )
     
     except KeyboardInterrupt:
