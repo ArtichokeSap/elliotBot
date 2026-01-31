@@ -216,3 +216,34 @@ When triggered, do ALL of the following:
 ### What NOT to Log
 - Trivial Q&A sessions with no code changes
 - Sessions where user explicitly declines logging
+---
+
+## 🟢 SESSION RESUMPTION - AI INSTRUCTIONS
+
+### Trigger Phrases
+When the user says any of these, execute the session resumption procedure:
+- **"resume session"**
+- **"continue session"**
+- **"catch me up"**
+- **"what's the context"**
+- **"where were we"**
+
+### Session Resumption Procedure
+When triggered, do ALL of the following:
+
+1. **Read recent session logs**: Check `docs/sessions/` for the most recent 1-2 session files
+   - Read them fully to understand recent work and context
+
+2. **Check for uncommitted changes**: Run `git status` and `git diff --stat` to see if there's work in progress
+
+3. **Summarize for the user**:
+   - What was accomplished in the last session(s)
+   - What the stated next steps were
+   - Any blockers or context notes left for you
+   - Current state of the codebase (uncommitted changes?)
+
+4. **Ask what they want to focus on**: Offer the next steps from the previous session as options
+
+### Quick Context (No Full Resume Needed)
+If user just needs a quick reminder, they can say:
+- **"quick context"** - Just read and summarize the most recent session log without git checks
