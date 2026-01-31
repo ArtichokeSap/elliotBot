@@ -162,6 +162,57 @@ filename = sanitize_filename(name)    # Path traversal protection
 - Check `detector.validate_wave_rules(wave)` for rule violations
 
 ## Testing
-- Run `pytest` from project root (tests/ directory structure expected but not present in current workspace)
+- Run `pytest` from project root
 - Use `python validate_imports.py` to check circular dependencies
 - Health check: `python tools/health_check.py`
+
+## Documentation Structure
+```
+docs/
+├── reference/          # Evergreen guides (USAGE_GUIDE.md, INSTALL.md, etc.)
+├── changelog/          # One-off fix documentation (SECURITY_FIXES.md, etc.)
+└── sessions/           # Chronological development session logs
+    ├── _SESSION_TEMPLATE.md
+    └── YYYY-MM-DD-title.md
+```
+
+---
+
+## 🔴 SESSION LOGGING - AI INSTRUCTIONS
+
+### Trigger Phrases
+When the user says any of these, execute the session logging procedure:
+- **"log session"**
+- **"save session"**
+- **"end session"**
+- **"record session"**
+
+### Session Logging Procedure
+When triggered, do ALL of the following:
+
+1. **Create session file**: `docs/sessions/YYYY-MM-DD-[brief-title].md`
+   - Use today's date
+   - Title should be 2-4 words describing main accomplishment
+
+2. **Follow the template**: Copy structure from `docs/sessions/_SESSION_TEMPLATE.md`
+
+3. **Fill in completely**:
+   - Summary: One paragraph of what was accomplished
+   - Goals: What was attempted (check completed ones)
+   - Changes Made: ALL files created/modified/moved with descriptions
+   - Key Decisions: Any architectural or approach decisions
+   - Problems Encountered: Issues hit and how resolved
+   - Next Steps: Prioritized tasks for future sessions
+   - Context for Future AI: Things the next AI instance needs to know
+   - Commands: Any useful commands discovered
+
+4. **Review recent context**: 
+   - Check `git diff` or `git status` for changes
+   - Review conversation for decisions made
+   - Note any unfinished work
+
+5. **Confirm with user**: Show the file path created and offer to adjust
+
+### What NOT to Log
+- Trivial Q&A sessions with no code changes
+- Sessions where user explicitly declines logging
