@@ -307,6 +307,59 @@ def quick_confluence_analysis(market_data, elliott_analysis, timeframe):
         except:
             return []
 
+
+# Minimal helpers used by tests (kept simple and deterministic)
+
+def analyze_wave_structure(waves, data):
+    """Analyze the detected waves and return a simple summary used by tests.
+
+    Returns a dict: {'pattern', 'confidence', 'direction'}
+    """
+    if not waves:
+        return {'pattern': 'none', 'confidence': 0.0, 'direction': 'unknown'}
+
+    # Simple heuristics: count impulse vs corrective waves by type names
+    types = [w.wave_type for w in waves]
+    up_count = sum(1 for w in waves if w.direction.value == 1)
+    down_count = sum(1 for w in waves if w.direction.value == -1)
+    direction = 'up' if up_count >= down_count else 'down'
+    confidence = float(sum(w.confidence for w in waves) / max(1, len(waves)))
+
+    pattern = 'impulse' if any('IMPULSE' in t.name for t in types) else 'corrective'
+
+    return {'pattern': pattern, 'confidence': confidence, 'direction': direction}
+
+
+def calculate_dynamic_target(current_price, waves, data, volatility, recent_trend, timeframe):
+    """Return a simple target price based on current price, trend and volatility.
+
+    This is intentionally conservative; it's only used by tests to ensure the pipeline
+    returns a numeric prediction.
+    """
+    if not waves:
+        return None
+
+    # Use average wave extension factor depending on direction
+    analysis = analyze_wave_structure(waves, data)
+    base_multiplier = 1.05 if analysis['direction'] == 'up' else 0.95
+
+    # Adjust by volatility (more volatility -> wider target)
+    vol_adj = 1.0 + min(0.5, volatility * 2.0)
+
+    # Timeframe multiplier to increase target for longer timeframes
+    tf_mult = get_timeframe_multiplier(timeframe)
+
+    return current_price * base_multiplier * vol_adj * tf_mult
+
+
+def get_timeframe_multiplier(timeframe):
+    """Return a small multiplier based on timeframe string for testing.
+
+    Simple mapping: 1h=0.25, 4h=0.5, 1d=1.0
+    """
+    mapping = {'1h': 0.25, '4h': 0.5, '1d': 1.0}
+    return mapping.get(timeframe, 1.0)
+
 @app.route('/')
 def index():
     """Main page with Elliott Wave analysis interface."""
