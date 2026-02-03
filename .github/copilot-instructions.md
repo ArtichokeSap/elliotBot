@@ -178,72 +178,73 @@ docs/
 
 ---
 
-## 🔴 SESSION LOGGING - AI INSTRUCTIONS
+## 🔴 SESSION CONTEXT SKILL (Generalized)
+
+> **Skill Design**: See `docs/reference/SESSION_CONTEXT_SKILL_DESIGN.md` for full architecture.
+> **Configuration**: See `.ai/session-context/config.yaml` for settings.
+
+### File Locations
+```
+.ai/session-context/
+├── config.yaml          # Skill configuration
+├── summary.md           # Rolling summary (ALWAYS read first - ~500 tokens)
+├── recent/              # Last 7 days of sessions
+├── archive/             # Monthly compressed archives
+└── _templates/          # Session and summary templates
+```
 
 ### Trigger Phrases
-When the user says any of these, execute the session logging procedure:
-- **"log session"**
-- **"save session"**
-- **"end session"**
-- **"record session"**
+**Logging**: "log session", "save session", "end session", "record session"
+**Resumption**: "resume session", "continue session", "catch me up", "where were we"
+**Quick**: "quick context" (summary only, no git checks)
 
-### Session Logging Procedure
-When triggered, do ALL of the following:
-
-1. **Create session file**: `docs/sessions/YYYY-MM-DD-[brief-title].md`
-   - Use today's date
-   - Title should be 2-4 words describing main accomplishment
-
-2. **Follow the template**: Copy structure from `docs/sessions/_SESSION_TEMPLATE.md`
-
-3. **Fill in completely**:
-   - Summary: One paragraph of what was accomplished
-   - Goals: What was attempted (check completed ones)
-   - Changes Made: ALL files created/modified/moved with descriptions
-   - Key Decisions: Any architectural or approach decisions
-   - Problems Encountered: Issues hit and how resolved
-   - Next Steps: Prioritized tasks for future sessions
-   - Context for Future AI: Things the next AI instance needs to know
-   - Commands: Any useful commands discovered
-
-4. **Review recent context**: 
-   - Check `git diff` or `git status` for changes
-   - Review conversation for decisions made
-   - Note any unfinished work
-
-5. **Confirm with user**: Show the file path created and offer to adjust
-
-### What NOT to Log
-- Trivial Q&A sessions with no code changes
-- Sessions where user explicitly declines logging
 ---
 
-## 🟢 SESSION RESUMPTION - AI INSTRUCTIONS
+### 🔴 SESSION LOGGING PROCEDURE
 
-### Trigger Phrases
-When the user says any of these, execute the session resumption procedure:
-- **"resume session"**
-- **"continue session"**
-- **"catch me up"**
-- **"what's the context"**
-- **"where were we"**
+When triggered:
 
-### Session Resumption Procedure
-When triggered, do ALL of the following:
+1. **Create session file**: `.ai/session-context/recent/YYYY-MM-DD-[brief-title].md`
+2. **Use template**: `.ai/session-context/_templates/session.md`
+3. **Fill in**: Summary, Goals, Changes, Decisions, Problems, Next Steps, AI Context
+4. **Update summary.md**: Add entry to recent sessions table, update current state
+5. **Check archival**: If any sessions in `recent/` are >7 days old, archive them
+6. **Confirm with user**: Show file path, offer adjustments
 
-1. **Read recent session logs**: Check `docs/sessions/` for the most recent 1-2 session files
-   - Read them fully to understand recent work and context
+**What NOT to Log**: Trivial Q&A, sessions user declines
 
-2. **Check for uncommitted changes**: Run `git status` and `git diff --stat` to see if there's work in progress
+---
 
-3. **Summarize for the user**:
-   - What was accomplished in the last session(s)
-   - What the stated next steps were
-   - Any blockers or context notes left for you
-   - Current state of the codebase (uncommitted changes?)
+### 🟢 SESSION RESUMPTION PROCEDURE
 
-4. **Ask what they want to focus on**: Offer the next steps from the previous session as options
+**Tiered Context Loading** (optimizes context window):
 
-### Quick Context (No Full Resume Needed)
-If user just needs a quick reminder, they can say:
-- **"quick context"** - Just read and summarize the most recent session log without git checks
+| Tier | Files | Tokens | When |
+|------|-------|--------|------|
+| 1 | `summary.md` | ~500 | Always |
+| 2 | `recent/*.md` | ~1500 | Full resume |
+| 3 | `archive/*.md` | Variable | Historical search |
+
+**For "quick context"**: Read only `summary.md`, report to user.
+
+**For full resume**:
+1. Read `summary.md` (always)
+2. Run `git status` and `git diff --stat`
+3. Read recent sessions if needed for detail
+4. Summarize: state, next steps, blockers
+5. Offer options from next steps
+
+---
+
+### 📦 ARCHIVAL (Prevents Unbounded Growth)
+
+**Automatic rules** (configured in `config.yaml`):
+- Sessions >7 days old: Move from `recent/` to `archive/`
+- Archive format: Monthly summaries (`archive/2026-01.md`)
+- Max 12 monthly archives, then compress to yearly
+
+**When archiving**:
+1. Extract: date, title, key accomplishments, decisions
+2. Append to monthly archive file
+3. Delete original from `recent/`
+4. Regenerate `summary.md` if needed
