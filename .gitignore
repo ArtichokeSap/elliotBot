@@ -390,6 +390,7 @@ downloads/
 !README.md
 !LICENSE
 !CHANGELOG.md
+!.ai/session-context/config.yaml
 
 # =============================================================================
 # CUSTOM ADDITIONS

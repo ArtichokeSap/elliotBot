@@ -198,9 +198,12 @@ def archive_session(session_file):
     content = read(session_file)
     key_info = extract_summary(content)  # AI-generated or template-based
     
-    month_file = f"archive/{session.date.strftime('%Y-%m')}.md"
-    append_to_archive(month_file, key_info)
+    # Extract date from filename (e.g., "2026-01-29-security.md" -> "2026-01")
+    filename = os.path.basename(session_file)
+    date_str = filename[:7]  # "YYYY-MM"
+    month_file = f"archive/{date_str}.md"
     
+    append_to_archive(month_file, key_info)
     delete(session_file)
     regenerate_summary()
 ```
