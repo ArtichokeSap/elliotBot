@@ -1,0 +1,46 @@
+# Session Context Skill Configuration
+# Auto-generated from session logs
+
+name: "Session Context Management"
+version: "1.0.0"
+description: "Portable session context skill for VS Code Copilot with tiered archival"
+
+# Core Configuration
+enabled: true
+auto_archive: true
+max_recent_sessions: 7
+archive_frequency_days: 30
+
+# File Locations
+summary_file: ".ai/session-context/summary.md"
+recent_dir: ".ai/session-context/recent/"
+archive_dir: ".ai/session-context/archive/"
+templates_dir: ".ai/session-context/_templates/"
+
+# Trigger Phrases
+resume_triggers:
+  - "resume session"
+  - "continue session"
+  - "session resume"
+  - "pick up where we left off"
+
+# Archival Rules
+archive_rules:
+  - pattern: "*.md"
+    max_age_days: 7
+    action: "move_to_archive"
+  - pattern: "summary.md"
+    action: "keep_current"
+
+# Integration Settings
+vscode_integration:
+  enabled: true
+  command_palette: true
+  status_bar: false
+
+# Logging
+logging:
+  level: "INFO"
+  file: "logs/session_context.log"
+  max_size: "10MB"
+  backups: 5
