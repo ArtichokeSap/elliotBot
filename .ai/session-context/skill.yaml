@@ -1,0 +1,51 @@
+# Session Context Skill Configuration
+# This file configures how AI sessions are logged, archived, and resumed
+
+version: "1.0"
+
+# Where session files are stored (relative to repo root)
+paths:
+  base: ".ai/session-context"
+  summary: "summary.md"
+  current: "current.md"          # Active session (if any)
+  recent: "recent"               # Last N days of sessions
+  archive: "archive"             # Monthly/quarterly archives
+  templates: "_templates"
+
+# Archival settings - prevents unbounded folder growth
+archival:
+  recent_days: 7                 # Sessions stay in recent/ for this many days
+  archive_after_days: 30         # Compress to monthly archive after this
+  archive_strategy: "monthly"    # Options: daily, weekly, monthly, quarterly
+  max_archive_files: 12          # Keep at most 12 monthly archives
+  compress_after_months: 12      # After 12 months, compress to yearly
+
+# Summary file settings - the always-read context file
+summary:
+  max_recent_entries: 10         # Show this many recent sessions in summary
+  include_decisions: true        # Track key architectural decisions
+  include_blockers: true         # Track current blockers
+  include_next_steps: true       # Show prioritized next steps
+  max_tokens_estimate: 1000      # Try to keep summary under this
+
+# Context loading tiers - balances detail vs context window usage
+loading:
+  tier1_always: ["summary.md"]   # Always read these (~500 tokens)
+  tier2_on_request: ["recent/"]  # Read if user asks for details (~1500 tokens)
+  tier3_search_only: ["archive/"] # Only search if user asks for history
+
+# Trigger phrases for this skill
+triggers:
+  log_session:
+    - "log session"
+    - "save session"
+    - "end session"
+    - "record session"
+  resume_session:
+    - "resume session"
+    - "continue session"
+    - "catch me up"
+    - "what's the context"
+    - "where were we"
+  quick_context:
+    - "quick context"
