@@ -181,12 +181,12 @@ docs/
 ## 🔴 SESSION CONTEXT SKILL (Generalized)
 
 > **Skill Design**: See `docs/reference/SESSION_CONTEXT_SKILL_DESIGN.md` for full architecture.
-> **Configuration**: See `.ai/session-context/config.yaml` for settings.
+> **Configuration**: See `.ai/session-context/skill.yaml` for settings.
 
 ### File Locations
 ```
 .ai/session-context/
-├── config.yaml          # Skill configuration
+├── skill.yaml           # Skill configuration
 ├── summary.md           # Rolling summary (ALWAYS read first - ~500 tokens)
 ├── recent/              # Last 7 days of sessions
 ├── archive/             # Monthly compressed archives
@@ -238,7 +238,7 @@ When triggered:
 
 ### 📦 ARCHIVAL (Prevents Unbounded Growth)
 
-**Automatic rules** (configured in `config.yaml`):
+**Automatic rules** (configured in `skill.yaml`):
 - Sessions >7 days old: Move from `recent/` to `archive/`
 - Archive format: Monthly summaries (`archive/2026-01.md`)
 - Max 12 monthly archives, then compress to yearly

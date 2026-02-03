@@ -98,7 +98,7 @@ Old sessions about "Fixed typo in README" get equal weight to "Redesigned entire
 ```
 .ai/                                    # Hidden folder for AI agent state
 ├── session-context/                    # This skill's folder
-│   ├── config.yaml                     # Skill configuration
+│   ├── skill.yaml                      # Skill configuration
 │   ├── current.md                      # Active session (ephemeral)
 │   ├── summary.md                      # Rolling summary (always read)
 │   ├── recent/                         # Recent sessions (last 7 days)
@@ -170,7 +170,7 @@ Old sessions about "Fixed typo in README" get equal weight to "Redesigned entire
 ### Automatic Archival Rules
 
 ```yaml
-# .ai/session-context/config.yaml
+# .ai/session-context/skill.yaml
 archival:
   recent_days: 7           # Sessions younger than this stay in recent/
   archive_after_days: 30   # Sessions older than this get archived
@@ -264,7 +264,7 @@ copilot skill install session-context
 
 # Today: Manual installation
 mkdir -p .ai/session-context/{recent,archive}
-curl -O https://example.com/session-context/config.yaml
+curl -O https://example.com/session-context/skill.yaml
 curl -O https://example.com/session-context/templates/session.md
 # Add instructions to .github/copilot-instructions.md
 ```
