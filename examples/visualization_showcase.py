@@ -44,8 +44,24 @@ def main():
     period = "1y"
     
     print(f"📊 Loading {symbol} data ({period} period)...")
-    data = data_loader.get_yahoo_data(symbol, period=period)
-    print(f"✅ Loaded {len(data)} data points")
+    try:
+        data = data_loader.get_yahoo_data(symbol, period=period)
+        print(f"✅ Loaded {len(data)} data points")
+    except (ImportError, ValueError, AttributeError, Exception) as e:
+        print(f"⚠️  Could not fetch Yahoo data: {e}")
+        print("⚠️  Falling back to generated sample data for visualization demo.")
+        # Create synthetic OHLCV data for demo purposes
+        import pandas as pd
+        import numpy as np
+        idx = pd.date_range(end=pd.Timestamp.today(), periods=252, freq='B')
+        price = 150 + np.cumsum(np.random.normal(0, 1.0, size=len(idx)))
+        openp = price + np.random.normal(0, 0.5, size=len(idx))
+        high = np.maximum(price, openp) + np.abs(np.random.normal(0, 0.5, size=len(idx)))
+        low = np.minimum(price, openp) - np.abs(np.random.normal(0, 0.5, size=len(idx)))
+        close = price
+        volume = np.random.randint(500, 2000, size=len(idx))
+        data = pd.DataFrame({'open': openp, 'high': high, 'low': low, 'close': close, 'volume': volume}, index=idx)
+        print(f"✅ Generated {len(data)} synthetic data points for demo")
     
     print("🌊 Detecting Elliott Waves...")
     waves = wave_detector.detect_waves(data)
