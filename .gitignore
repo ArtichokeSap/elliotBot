@@ -155,7 +155,7 @@ credentials.json
 auth.json
 
 # Trading data and logs
-data/
+/data/
 logs/
 *.log
 trading_logs/
