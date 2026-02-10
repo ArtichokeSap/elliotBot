@@ -396,3 +396,6 @@ downloads/
 # =============================================================================
 
 # Add any project-specific ignores below this line
+
+# Allow agent skill configuration files
+!.agents/skills/**/config.yaml

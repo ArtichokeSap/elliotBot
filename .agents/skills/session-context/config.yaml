@@ -1,11 +1,11 @@
 # Session Context Skill Configuration
 # This file configures how AI sessions are logged, archived, and resumed
 
-version: "1.0"
+version: "1.1"
 
 # Where session files are stored (relative to repo root)
 paths:
-  base: ".ai/session-context"
+  base: ".agents/skills/session-context"
   summary: "summary.md"
   current: "current.md"          # Active session (if any)
   recent: "recent"               # Last N days of sessions
