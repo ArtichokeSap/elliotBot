@@ -95,18 +95,24 @@ Old sessions about "Fixed typo in README" get equal weight to "Redesigned entire
 
 ### Proposed File Structure
 
+> **Note**: As of v1.1, this skill has been migrated to the `.agents/skills/` standard
+> format (see below). The original `.ai/session-context/` layout is preserved here for
+> historical context.
+
 ```
-.ai/                                    # Hidden folder for AI agent state
-├── session-context/                    # This skill's folder
-│   ├── skill.yaml                      # Skill configuration
-│   ├── current.md                      # Active session (ephemeral)
-│   ├── summary.md                      # Rolling summary (always read)
-│   ├── recent/                         # Recent sessions (last 7 days)
-│   │   ├── 2026-02-01-feature-x.md
-│   │   └── 2026-02-03-bug-fix.md
-│   └── archive/                        # Compressed older sessions
-│       ├── 2026-01.md                  # January's sessions, summarized
-│       └── 2026-Q1.md                  # Q1 aggregate (optional)
+.agents/skills/session-context/         # Standard .agents/skills location
+├── SKILL.md                            # Skill definition (standard format)
+├── config.yaml                         # Skill configuration
+├── summary.md                          # Rolling summary (always read)
+├── recent/                             # Recent sessions (last 7 days)
+│   ├── 2026-02-01-feature-x.md
+│   └── 2026-02-03-bug-fix.md
+├── archive/                            # Compressed older sessions
+│   ├── 2026-01.md                      # January's sessions, summarized
+│   └── 2026-Q1.md                      # Q1 aggregate (optional)
+└── _templates/                         # Session and summary templates
+    ├── session.md
+    └── summary.md
 ```
 
 ### Key Innovation: The Rolling Summary
@@ -170,7 +176,7 @@ Old sessions about "Fixed typo in README" get equal weight to "Redesigned entire
 ### Automatic Archival Rules
 
 ```yaml
-# .ai/session-context/skill.yaml
+# .agents/skills/session-context/config.yaml
 archival:
   recent_days: 7           # Sessions younger than this stay in recent/
   archive_after_days: 30   # Sessions older than this get archived
@@ -212,61 +218,38 @@ def archive_session(session_file):
 
 ## Portable Skill Definition
 
-### Skill Manifest (Future-Looking)
+### Skill Format (Current Standard)
+
+The `.agents/skills/` format is now the standard for AI agent skills. Each skill lives in
+its own directory under `.agents/skills/<skill-name>/` with a `SKILL.md` file as the
+entry point:
 
 ```yaml
-# .ai/skills/session-context/manifest.yaml
+# .agents/skills/session-context/SKILL.md (YAML frontmatter)
+---
 name: session-context
-version: 1.0.0
-description: Maintains continuity across AI agent sessions
-
-triggers:
-  logging:
-    - "log session"
-    - "save session"
-    - "end session"
-  resumption:
-    - "resume session"
-    - "continue session"
-    - "catch me up"
-    - "quick context"
-
-tools_required:
-  - file_read
-  - file_write
-  - git_status
-  - git_diff
-
-configuration:
-  base_path: ".ai/session-context"
-  templates:
-    session: "_templates/session.md"
-    summary: "_templates/summary.md"
-
-behaviors:
-  on_log_session:
-    - create_session_file
-    - update_summary
-    - check_for_archival
-  on_resume_session:
-    - read_summary
-    - check_recent_if_needed
-    - report_state
+description: "Maintains continuity across AI agent sessions..."
+---
 ```
+
+This format is used by thousands of repositories (lobehub, nitrojs, wagmi, and many others)
+and is supported by GitHub Copilot and other AI agent platforms.
 
 ### Installation as Standalone Skill
 
 To use in any repository:
 
 ```bash
-# Future: skill installation command
-copilot skill install session-context
+# Copy the skill folder to your repo
+cp -r .agents/skills/session-context /path/to/your/repo/.agents/skills/session-context
 
-# Today: Manual installation
-mkdir -p .ai/session-context/{recent,archive}
-curl -O https://example.com/session-context/skill.yaml
-curl -O https://example.com/session-context/templates/session.md
-# Add instructions to .github/copilot-instructions.md
+# Clear example sessions
+rm -rf .agents/skills/session-context/recent/*
+rm -rf .agents/skills/session-context/archive/*
+
+# Customize summary.md for your project, then commit
+git add .agents/skills/session-context
+git commit -m "feat: Add session context skill"
 ```
 
 ---
@@ -330,12 +313,18 @@ def load_session_context(request_type):
 
 ## Implementation Roadmap
 
-### Phase 1: Minimal Viable Skill (This PR)
+### Phase 1: Minimal Viable Skill ✅
 - [x] Design document (this file)
-- [ ] Create `.ai/session-context/` folder structure
-- [ ] Migrate existing sessions to new structure
-- [ ] Create `summary.md` template
-- [ ] Update instructions for new paths
+- [x] Create folder structure with templates
+- [x] Migrate existing sessions
+- [x] Create rolling `summary.md`
+- [x] Update instructions for new paths
+
+### Phase 1.5: Migrate to `.agents/skills/` Standard ✅
+- [x] Move from `.ai/session-context/` to `.agents/skills/session-context/`
+- [x] Create `SKILL.md` with standard YAML frontmatter format
+- [x] Remove embedded instructions from `copilot-instructions.md`
+- [x] Update all documentation references
 
 ### Phase 2: Automatic Archival
 - [ ] Add archival logic (could be a daily cron or on-log trigger)
@@ -343,27 +332,30 @@ def load_session_context(request_type):
 - [ ] Implement summary regeneration
 
 ### Phase 3: Cross-Project Portability
-- [ ] Extract skill as standalone package
-- [ ] Create installation script/instructions
+- [x] Extract skill as standalone copyable folder
+- [x] Create installation instructions
 - [ ] Test in different repository types
 
 ### Phase 4: Platform Integration (Future)
 - [ ] Propose as official Copilot skill
-- [ ] Create skill manifest standard
+- [x] Adopt `.agents/skills/` standard format
 - [ ] Build skill discovery/registry
 
 ---
 
 ## Comparison: Before vs After
 
-| Aspect | Before (v1) | After (v2) |
-|--------|-------------|------------|
+| Aspect | Before (v1) | After (v1.1 - Current) |
+|--------|-------------|------------------------|
+| Location | `.ai/session-context/` | `.agents/skills/session-context/` |
+| Skill format | Custom `skill.yaml` | Standard `SKILL.md` with frontmatter |
 | Folder growth | Unbounded | Archived monthly |
 | Context tokens | ~4000 | ~500-1000 |
-| Portability | Project-specific | Generic skill |
+| Portability | Project-specific | Copyable folder, standard format |
 | Resume speed | Read 2 full files | Read 1 summary |
 | Historical access | All equal weight | Tiered priority |
 | Configuration | Hardcoded | YAML config |
+| Discovery | Manual instructions in copilot-instructions.md | Auto-discovered by `.agents/skills/` convention |
 
 ---
 

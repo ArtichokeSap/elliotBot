@@ -1,14 +1,15 @@
 # Elliott Wave Bot - Project Context Summary
-*Auto-updated from session logs. Last updated: 2026-02-03*
+*Auto-updated from session logs. Last updated: 2026-02-10*
 
 ## Current State
 - **Main branch**: Stable with security fixes, test suite in place
-- **In-progress**: Generalizing session context skill
+- **In-progress**: Migrated session skill to `.agents/skills/` standard
 - **Blocked**: None
 
 ## Recent Sessions
 | Date | Title | Key Changes |
 |------|-------|-------------|
+| 2026-02-10 | Migrate to .agents/skills format | Moved session skill from `.ai/` to `.agents/skills/session-context/` |
 | 2026-02-03 | Session Context Generalization | Designed portable session skill with archival |
 | 2026-01-31 | Session Logging System | Created docs structure, added trigger phrases |
 | 2026-01-29 | Security & Tests | Fixed pickle vulnerability, added 40 tests |
@@ -17,7 +18,7 @@
 - Use `joblib.load()` not `pickle.load()` for security (2026-01-29)
 - Whitelist approach for input validation (2026-01-29)
 - Three-folder doc structure: reference/changelog/sessions (2026-01-31)
-- Session context lives in `.ai/session-context/` (2026-02-03)
+- Session context skill uses `.agents/skills/session-context/` standard format (2026-02-10)
 - Rolling summary.md for constant-size context (2026-02-03)
 
 ## Next Steps (Prioritized)
